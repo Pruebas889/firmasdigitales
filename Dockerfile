@@ -1,3 +1,4 @@
+# Etapa 1: Descargar fuentes y PDFium
 FROM ruby:3.4.2-alpine AS download
 
 WORKDIR /fonts
@@ -13,8 +14,10 @@ RUN apk --no-cache add fontforge wget && \
     mkdir -p /pdfium-linux && \
     tar -xzf pdfium-linux.tgz -C /pdfium-linux
 
+# ✅ Fusionar fuentes con símbolos para compatibilidad
 RUN fontforge -lang=py -c 'font1 = fontforge.open("FreeSans.ttf"); font2 = fontforge.open("NotoSansSymbols2-Regular.ttf"); font1.mergeFonts(font2); font1.generate("FreeSans.ttf")'
 
+# Etapa 2: Compilar assets con Shakapacker
 FROM ruby:3.4.2-alpine AS webpack
 
 ENV RAILS_ENV=production
@@ -22,25 +25,44 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-RUN apk add --no-cache nodejs yarn git build-base && \
+RUN apk add --no-cache \
+    build-base \
+    git \
+    mariadb-dev \
+    nodejs \
+    postgresql-dev \
+    yarn && \
     gem install shakapacker
 
+# Dependencias JS
 COPY ./package.json ./yarn.lock ./
-
 RUN yarn install --network-timeout 1000000
 
-COPY ./bin/shakapacker ./bin/shakapacker
+# Archivos de configuración y binarios
+COPY ./bin ./bin
+RUN chmod +x ./bin/shakapacker && sed -i 's/\r$//' ./bin/shakapacker
+
 COPY ./config/webpack ./config/webpack
 COPY ./config/shakapacker.yml ./config/shakapacker.yml
 COPY ./postcss.config.js ./postcss.config.js
 COPY ./tailwind.config.js ./tailwind.config.js
 COPY ./tailwind.form.config.js ./tailwind.form.config.js
 COPY ./tailwind.application.config.js ./tailwind.application.config.js
+
+# Archivos fuente
 COPY ./app/javascript ./app/javascript
 COPY ./app/views ./app/views
 
-RUN echo "gem 'shakapacker'" > Gemfile && ./bin/shakapacker
+# Gems necesarias para shakapacker
+COPY ./Gemfile ./Gemfile.lock ./
+RUN bundle install
 
+COPY LICENSE README.md Rakefile config.ru .version ./
+
+# Precompilar assets
+RUN echo "gem 'shakapacker'" > Gemfile && ./bin/shakapacker 
+
+# Etapa 3: Imagen final de la aplicación
 FROM ruby:3.4.2-alpine AS app
 
 ENV RAILS_ENV=production
@@ -50,9 +72,26 @@ ENV OPENSSL_CONF=/app/openssl_legacy.cnf
 
 WORKDIR /app
 
-RUN echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && apk add --no-cache sqlite-dev libpq-dev mariadb-dev vips-dev@edge redis libheif@edge vips-heif@edge gcompat ttf-freefont && mkdir /fonts && rm /usr/share/fonts/freefont/FreeSans.otf
-
-RUN echo $'.include = /etc/ssl/openssl.cnf\n\
+# Repositorio edge requerido
+RUN echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
+    apk add --no-cache \
+        build-base \
+        gcompat \
+        git \
+        libheif@edge \
+        libpq-dev \
+        mariadb-dev \
+        nodejs \
+        postgresql-dev \
+        redis \
+        sqlite-dev \
+        ttf-freefont \
+        vips-dev@edge \
+        vips-heif@edge \
+        yarn && \
+    mkdir /fonts && \
+    rm /usr/share/fonts/freefont/FreeSans.otf && \
+    echo $'.include = /etc/ssl/openssl.cnf\n\
 \n\
 [provider_sect]\n\
 default = default_sect\n\
@@ -64,11 +103,16 @@ activate = 1\n\
 [legacy_sect]\n\
 activate = 1' >> /app/openssl_legacy.cnf
 
-COPY ./Gemfile ./Gemfile.lock ./
+# Dependencias Ruby
+COPY ./Gemfile ./Gemfile
+COPY ./Gemfile.lock ./Gemfile.lock
+RUN bundle install && rm -rf ~/.bundle /usr/local/bundle/cache
 
-RUN apk add --no-cache build-base && bundle install && apk del --no-cache build-base && rm -rf ~/.bundle /usr/local/bundle/cache && ruby -e "puts Dir['/usr/local/bundle/**/{spec,rdoc,resources/shared,resources/collation,resources/locales}']" | xargs rm -rf
-
+# Binarios
 COPY ./bin ./bin
+RUN chmod +x ./bin/* && sed -i 's/\r$//' ./bin/*
+
+# Código fuente
 COPY ./app ./app
 COPY ./config ./config
 COPY ./db/migrate ./db/migrate
@@ -78,18 +122,28 @@ COPY ./public ./public
 COPY ./tmp ./tmp
 COPY LICENSE README.md Rakefile config.ru .version ./
 COPY .version ./public/version
+COPY ./package.json ./yarn.lock ./
 
-COPY --from=download /fonts/GoNotoKurrent-Regular.ttf /fonts/GoNotoKurrent-Bold.ttf /fonts/DancingScript-Regular.otf /fonts/OFL.txt /fonts
+# Archivos precompilados y fuentes
+COPY --from=download /fonts /fonts
 COPY --from=download /fonts/FreeSans.ttf /usr/share/fonts/freefont
 COPY --from=download /pdfium-linux/lib/libpdfium.so /usr/lib/libpdfium.so
 COPY --from=download /pdfium-linux/licenses/pdfium.txt /usr/lib/libpdfium-LICENSE.txt
-COPY --from=webpack /app/public/packs ./public/packs
 
-RUN ln -s /fonts /app/public/fonts
-RUN bundle exec bootsnap precompile --gemfile app/ lib/
+COPY --from=webpack /app/public/packs ./public/packs
+COPY --from=webpack /app/node_modules ./node_modules
+
+RUN RAILS_ENV=production bundle exec rake assets:precompile
+
+# Entrypoint y preparación
+COPY ./entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh && sed -i 's/\r$//' /app/entrypoint.sh && \
+    ln -s /fonts /app/public/fonts && \
+    bundle exec bootsnap precompile --gemfile app/ lib/
 
 WORKDIR /data/docuseal
 ENV WORKDIR=/data/docuseal
 
 EXPOSE 3000
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bin/bundle", "exec", "puma", "-C", "/app/config/puma.rb", "--dir", "/app"]
