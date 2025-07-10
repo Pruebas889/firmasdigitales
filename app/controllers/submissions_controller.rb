@@ -12,6 +12,27 @@ class SubmissionsController < ApplicationController
     authorize!(:create, Submission)
   end
 
+  def index
+    base_query = Submission
+                  .left_joins(:template)
+                  .joins(:submitters)
+                  .where(archived_at: nil, templates: { archived_at: nil })
+                  .where("submitters.email = :email OR submissions.created_by_user_id = :user_id",
+                          email: current_user.email, user_id: current_user.id)
+                  .distinct
+
+    @submissions = Submissions.search(current_user, base_query, params[:q], search_template: true)
+    @submissions = Submissions::Filter.call(@submissions, current_user, params)
+
+    if params[:completed_at_from].present? || params[:completed_at_to].present?
+      @submissions = @submissions.order(Submitter.arel_table[:completed_at].maximum.desc)
+    else
+      @submissions = @submissions.order(id: :desc)
+    end
+
+    @pagy, @submissions = pagy_auto(@submissions.preload(submitters: :start_form_submission_events))
+  end
+
   def show
     @submission = Submissions.preload_with_pages(@submission)
 

@@ -5,35 +5,56 @@ services:
         condition: service_healthy
     image: docuseal/docuseal:latest
     ports:
-      - 3000:3000
+      - "3000:3000"
     volumes:
-      - ./docuseal:/data/docuseal
+      - ./docuseal/:/data/docuseal
+      - ./app/controllers/:/app/app/controllers
+      - ./app/javascript/:/app/app/javascript
+      - ./app/jobs/:/app/app/jobs
+      - ./app/mailers/:/app/app/mailers
+      - ./app/models/:/app/app/models
+      - ./app/services/:/app/app/services
+      - ./app/views/:/app/app/views
+      - ./lib/:/app/lib
     environment:
-      - FORCE_SSL=${HOST}
+      - HOST=192.168.21.30
+      - FORCE_SSL=false
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuseal
+    networks:
+      - docuseal_net
 
   postgres:
     image: postgres:15
     volumes:
-      - './pg_data:/var/lib/postgresql/data'
+      - ./pg_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: docuseal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    networks:
+      - docuseal_net
 
   caddy:
     image: caddy:latest
-    command: caddy reverse-proxy --from $HOST --to app:3000
+    command: caddy reverse-proxy --from 192.168.21.37 --to app:3000
     ports:
-      - 80:80
-      - 443:443
-      - 443:443/udp
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
-      - .:/data
+      - ./caddy_data:/data
     environment:
-      - HOST=${HOST}
+      - HOST=192.168.21.37
+    depends_on:
+      - app
+    networks:
+      - docuseal_net
+
+networks:
+  docuseal_net:
+    driver: bridge

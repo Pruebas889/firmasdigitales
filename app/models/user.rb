@@ -44,7 +44,9 @@
 #
 class User < ApplicationRecord
   ROLES = [
-    ADMIN_ROLE = 'admin'
+    ADMIN_ROLE = 'admin',
+    EDITOR_ROLE = 'editor',
+    VIEWER_ROLE = 'viewer'
   ].freeze
 
   EMAIL_REGEXP = /[^@;,<>\s]+@[^@;,<>\s]+/
@@ -72,9 +74,14 @@ class User < ApplicationRecord
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
   scope :admins, -> { where(role: ADMIN_ROLE) }
+  
+  # Nuevos scopes para editor y viewer
+  scope :editors, -> { where(role: EDITOR_ROLE) }
+  scope :viewers, -> { where(role: VIEWER_ROLE) }
 
   validates :email, format: { with: /\A[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\z/ }
-
+  # Validar que el rol sea uno de los roles definidos
+  validates :role, inclusion: { in: ROLES }
   def access_token
     super || build_access_token.tap(&:save!)
   end
@@ -90,7 +97,7 @@ class User < ApplicationRecord
   def sidekiq?
     return true if Rails.env.development?
 
-    role == 'admin'
+    role == ADMIN_ROLE
   end
 
   def self.sign_in_after_reset_password
@@ -115,5 +122,33 @@ class User < ApplicationRecord
     else
       email
     end
+  end
+  
+# --- Métodos de ayuda para verificar roles ---
+  def admin?
+    role == ADMIN_ROLE
+  end
+
+  def editor?
+    role == EDITOR_ROLE
+  end
+
+  def viewer?
+    role == VIEWER_ROLE
+  end
+
+  # todos los usuarios del sistema pueden "ver", así que si todos tiene permisos de visualización
+  def can_view?
+    admin? || editor? || viewer?
+  end
+
+  # Un editor puede "editar", pero un viewer no.
+  def can_edit?
+    admin? || editor?
+  end
+
+  # Un administrador puede hacer cualquier cosa
+  def can_administer?
+    admin?
   end
 end

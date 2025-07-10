@@ -7,6 +7,7 @@ class UsersController < ApplicationController
   authorize_resource :user, only: %i[new create]
 
   def index
+    # Aplicar los filtros de estado (active, archived, integration)
     @users =
       if params[:status] == 'archived'
         @users.archived.where.not(role: 'integration')
@@ -15,8 +16,7 @@ class UsersController < ApplicationController
       else
         @users.active.where.not(role: 'integration')
       end
-
-    @pagy, @users = pagy(@users.preload(account: :account_accesses).where(account: current_account).order(id: :desc))
+    @pagy, @users = pagy(@users.preload(account: :account_accesses).order(id: :desc))
   end
 
   def new; end

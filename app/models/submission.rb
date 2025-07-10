@@ -81,6 +81,9 @@ class Submission < ApplicationRecord
     where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
      .and(Submitter.arel_table[:declined_at].not_eq(nil))).select(1).arel.exists)
   }
+  scope :where_user_is_submitter, ->(user) {
+    joins(:submitters).where(submitters: { email: user.email }).distinct
+  }
   scope :expired, -> { pending.where(expire_at: ..Time.current) }
 
   enum :source, {
