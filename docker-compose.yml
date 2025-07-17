@@ -1,0 +1,65 @@
+services:
+  app:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: docuseal/docuseal:latest
+    entrypoint: ["/app/entrypoint.sh"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docuseal/:/data/docuseal
+      - ./app/controllers/:/app/app/controllers
+      - ./app/javascript/:/app/app/javascript
+      - ./app/jobs/:/app/app/jobs
+      - ./app/mailers/:/app/app/mailers
+      - ./app/models/:/app/app/models
+      - ./app/services/:/app/app/services
+      - ./app/views/:/app/app/views
+      - ./lib/:/app/lib
+      - ./config/:/app/config
+      - ./Gemfile:/app/Gemfile
+      - ./Gemfile.lock:/app/Gemfile.lock
+      - ./entrypoint.sh:/app/entrypoint.sh:rw
+    environment:
+      - HOST=192.168.21.30
+      - FORCE_SSL=false
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuseal
+    networks:
+      - docuseal_net
+
+  postgres:
+    image: postgres:15
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: docuseal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - docuseal_net
+
+  caddy:
+    image: caddy:latest
+    command: caddy reverse-proxy --from 192.168.21.41 --to app:3000
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy_data:/data
+    environment:
+      - HOST=192.168.21.41
+    depends_on:
+      - app
+    networks:
+      - docuseal_net
+
+networks:
+  docuseal_net:
+    driver: bridge

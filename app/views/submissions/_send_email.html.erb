@@ -1,0 +1,38 @@
+<% submitter_preferences_index = template&.preferences&.dig('submitters').to_a.index_by { |e| e['uuid'] } %>
+<% template_submitters = local_assigns[:submitter]&.submission&.template_submitters || template.submitters %>
+<div class="form-control">
+  <% can_send_emails = Accounts.can_send_emails?(current_account) %>
+  <div class="flex justify-between items-center">
+    <%= f.label :send_email, for: uuid = SecureRandom.uuid, class: 'flex items-center cursor-pointer' do %>
+      <%= f.check_box :send_email, id: uuid, class: 'base-checkbox', disabled: !can_send_emails || local_assigns[:disable_email], checked: can_send_emails && !local_assigns.key?(:resend_email) && !local_assigns[:disable_email] %>
+      <span class="label"><%= local_assigns[:resend_email] ? t('re_send_email') : t('send_email') %></span>
+    <% end %>
+    <div>
+      <% if can_send_emails %>
+        <%= render 'submissions/email_stats' %>
+        <%# Se ha eliminado el botón/opción 'Editar Mensaje' y su lógica asociada %>
+      <% end %>
+    </div>
+  </div>
+  <% if !Docuseal.multitenant? && !can_send_emails %>
+    <div class="alert my-4">
+      <%= svg_icon('info_circle', class: 'w-6 h-6') %>
+      <div>
+        <p class="font-bold"><%= t('smtp_not_configured') %></p>
+        <p class="text-gray-700">
+          <%= t('configure_smtp_settings_in_order_to_send_emails_') %>
+          <br>
+          <a class="link font-medium" data-turbo-frame="_top" href="<%= settings_email_index_path %>">
+            <%= t('go_to_smtp_settings') %>
+          </a>
+        </p>
+      </div>
+    </div>
+  <% end %>
+</div>
+<%# Se ha eliminado todo el bloque de personalización de mensaje (id="message_field") %>
+<%# Así como la lógica para mensaje por signatario %>
+
+<%# Es posible que necesites asegurar que los valores por defecto del asunto y cuerpo
+    se carguen desde la configuración principal o desde la plantilla base,
+    ya que los campos de entrada para modificarlos se han removido. %>

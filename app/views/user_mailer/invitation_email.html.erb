@@ -1,0 +1,12 @@
+<p><%= @user.first_name.present? ? t('hello_name', name: @user.first_name) : t('hi_there') %>,</p>
+<p><%= t('you_have_been_invited_to_account_name_product_name_please_sign_up_using_the_link_below_', account_name: @user.account.name, product_name: Docuseal.product_name) %></p>
+<p>
+  <a href="<%= invitation_url(reset_password_token: @token) %>"
+     style="display:inline-block;padding:12px 24px;background-color:#28a745;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">
+    <%= t('review_and_sign') %>
+  </a>
+</p>
+<p><%= t('please_contact_us_by_replying_to_this_email_if_you_didn_t_request_this') %></p>
+<p>
+  <%= t('thanks') %>,<br><%= @current_account.name %>
+</p>

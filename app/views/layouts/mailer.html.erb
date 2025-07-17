@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	 <%# se recomienda crear un html para el diseño de los envíos %>
+    <style>
+      .header-logo {
+        max-width: 150px;
+        height: auto;
+        display: block;
+        margin: 10px auto;
+      }
+    </style>
+  </head>
+  <body dir="<%= TextUtils.rtl?(yield) ? 'rtl' : 'auto' %>">
+    <header>
+      <%# recuerda que se creo una cuenta para pruebas 380 y hay se guarda la imagen el nombre lo puedes cambiar entrando a cloud binary y modificando el nombre de la imagen copia el path para estar completamente seguro de que si es tambien puedes modificar el diseño de los mensajes %>
+      <%= link_to image_tag('https://res.cloudinary.com/dz7okl1ko/image/upload/v1752180853/5134606975890468276-removebg-preview_iskqsd.png', alt: 'Copservir', style: 'max-width: 100%; height: auto;'), '' %>
+    </header>
+    <%= yield %>
+  </body>
+</html>

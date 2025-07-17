@@ -1,0 +1,47 @@
+<div style="max-width:500px;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 8px #e0e0e0;padding:32px 24px;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="text-align:center;margin-bottom:18px;">
+    <img src="https://res.cloudinary.com/dz7okl1ko/image/upload/v1752180853/5134606975890468276-removebg-preview_iskqsd.png"
+         alt="Copservir"
+         style="max-width:140px;height:auto;display:inline-block;">
+  </div>
+  <h2 style="color:#28a745;font-size:22px;margin-bottom:16px;text-align:center;">
+    ¡Su firma es solicitada!
+  </h2>
+  <p style="font-size:16px;color:#333;margin-bottom:24px;text-align:center;">
+    Por favor revisar y firmar el documento.
+  </p>
+  <div style="text-align:center;margin-bottom:32px;">
+    <a href="<%= submit_form_url(
+          slug: @submitter.slug,
+          t: SubmissionEvents.build_tracking_param(@submitter, 'click_email'),
+          host: ENV.fetch('EMAIL_HOST', Docuseal.default_url_options[:host])
+        ) %>"
+       style="display:inline-block;padding:14px 32px;background-color:#28a745;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:17px;box-shadow:0 2px 6px #b7e4c7;transition:background 0.2s;">
+      Revisar y Firmar
+    </a>
+  </div>
+  <div style="background:#f8f9fa; padding:16px 12px; border-radius:6px; margin-bottom:24px;">
+  <p style="margin-top:0; margin-bottom:12px; color:#333; font-size:16px;">Agradecemos su colaboración y pronta respuesta.</p>
+
+  <b style="color:#333; font-size:18px; display:block; margin-bottom:8px;">Recomendaciones:</b>
+  <p style="font-size:15px; color:#555; margin-top:0; margin-bottom:12px;">
+    En caso de tener algún inconveniente técnico durante el proceso, favor diligenciar:
+  </p>
+
+  <p style="margin-bottom:12px;">
+  <a href="https://tinyurl.com/2ctleunp" style="color:#007bff; text-decoration:underline; font-size:15px;">
+    ✉️ Formulario de soporte mesa de ayuda Asana
+  </a>
+</p>
+
+
+  <p style="font-size:15px; color:#555; margin-top:0;">
+    (Soporte Técnico) 📞 <span style="color:#28a745; font-weight:bold;">3203509822</span>
+  </p>
+</div>
+
+<p style="font-size:15px; text-align:left; margin-top:24px; margin-bottom:0; color:#333;">
+  Atentamente,<br>
+  <span style="font-size:16px; color:#28a745; font-weight:bold;"><%= @current_account.name %></span>
+</p>
+</div>

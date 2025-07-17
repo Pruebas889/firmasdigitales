@@ -1,0 +1,10 @@
+<div class="flex items-end flex-col md:flex-row gap-2 w-full md:w-fit">
+  <%= render 'submissions_filters/applied_filters', filter_params: %>
+  <%= render 'submissions_filters/filter_button', filter_params: %>
+  <%= render 'submissions_filters/actions', filter_params: %>
+  <!-- Botón de estadísticas -->
+  <%= link_to statistics_submissions_path, class: 'base-button flex items-center gap-2' do %>
+    <%= svg_icon('chart_pie', class: 'w-5 h-5') %>
+    <span>Estadísticas</span>
+  <% end %>
+</div>

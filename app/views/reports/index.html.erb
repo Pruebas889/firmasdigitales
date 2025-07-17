@@ -1,0 +1,437 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= content_for :title, "Estadísticas de Envíos" %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .bg-custom-header {
+      background-color: #f3f4f6; /* Un gris claro para un look más moderno */
+    }
+   
+    /* Clases generales para celdas de tabla */
+    .table-data-cell {
+      padding: 12px 24px; /* Padding base para celdas de datos */
+    }
+    .table-header-cell {
+      padding: 12px 24px; /* Padding base para celdas de encabezado */
+    }
+    .table-description-cell { /* Para las descripciones principales */
+      text-align: left;
+      padding-left: 24px;
+      padding-right: 24px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+
+    /* Clase para los números de las categorías "padre" */
+    .table-number-cell {
+      text-align: right;
+      padding-right: 32px; /* Más padding a la derecha para empujar el número a la izquierda */
+      padding-left: 24px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+
+    /* Clase específica para las descripciones de sub-categorías (indentación de texto) */
+    .table-subcategory-description-cell {
+      text-align: left;
+      padding-left: 48px; /* Mayor padding-left para indentar la descripción del hijo */
+      padding-right: 24px;
+      padding-top: 8px; /* Menor padding vertical para agrupar */
+      padding-bottom: 8px; /* Menor padding vertical para agrupar */
+    }
+
+
+    /* Clase específica para los NÚMEROS de las sub-categorías (alineación más a la derecha) */
+    .table-subcategory-number-cell {
+      text-align: right;
+      padding-right: 24px; /* Menos padding a la derecha para que el número se acerque más al borde */
+      padding-left: 24px;
+      padding-top: 8px; /* Menor padding vertical para agrupar */
+      padding-bottom: 8px; /* Menor padding vertical para agrupar */
+    }
+
+
+    .section-hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+
+<div class="px-4 py-8 w-full">
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-8">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-4 sm:mb-0">Estadísticas de Envíos</h1>
+    <%= link_to 'Volver a Envíos', submissions_path, class: 'px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out' %>
+  </div>
+
+
+  <% if flash[:alert] %>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+      <strong class="font-bold">¡Error!</strong>
+      <span class="block sm:inline"><%= flash[:alert] %></span>
+    </div>
+  <% end %>
+
+
+  <div class="mb-4">
+    <button id="toggleViewBtn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out">
+      Mostrar Resultados Individuales
+    </button>
+  </div>
+
+
+  <form method="get" action="<%= reports_path %>" data-turbo="false" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 p-6 bg-white rounded-xl shadow-lg">
+    <div class="flex flex-col">
+      <label for="from_date" class="text-gray-700 font-medium mb-2">Desde:</label>
+      <input type="date" name="from_date" id="from_date" class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2" value="<%= params[:from_date].presence || Date.today.strftime('%Y-%m-%d') %>" max="<%= Date.today.strftime('%Y-%m-%d') %>">
+    </div>
+    <div class="flex flex-col">
+      <label for="to_date" class="text-gray-700 font-medium mb-2">Hasta:</label>
+      <input type="date" name="to_date" id="to_date" class="form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2" value="<%= params[:to_date].presence || Date.today.strftime('%Y-%m-%d') %>" max="<%= Date.today.strftime('%Y-%m-%d') %>">
+    </div>
+    <% if current_user.role == 'viewer' || current_user.role == 'admin' %>
+      <div class="flex flex-col">
+        <label for="user_id" class="text-gray-700 font-medium mb-2">Seleccionar Usuario:</label>
+        <%= select_tag :user_id, options_from_collection_for_select(User.where.not(role: 'viewer').or(User.where(id: current_user.id)), :id, :full_name), include_blank: "Selecciona un usuario", class: "form-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 p-2", selected: params[:user_id] %>
+      </div>
+    <% end %>
+    <div class="flex items-end justify-start md:justify-end">
+      <button type="submit" class="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out">Filtrar</button>
+    </div>
+  </form>
+
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="col-span-1">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden h-full">
+        <div class="bg-custom-header text-black text-center px-6 py-4 text-xl font-semibold">Datos Generales</div>
+        <div class="p-6">
+          <div class="overflow-x-auto">
+            <table class="min-w-full rounded-lg overflow-hidden border border-gray-200" id="generalTable">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th scope="col" class="table-header-cell text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Descripción</th>
+                  <th scope="col" class="table-header-cell text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Cantidad</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-100">
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="table-description-cell text-sm font-bold text-gray-800">Total de Envíos:</td>
+                  <td class="table-number-cell text-sm font-bold text-gray-800"><%= @total_submissions %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Completados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @approved_submissions %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Pendientes (Total):</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @pending_submissions %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Abiertos</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @opened_submissions_es %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Parcialmente Completado</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @partially_completed_submissions %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Enviado pero sin interacción</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @sent_submissions %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Rechazados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @rejected_submissions %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Expirados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @expired_submissions %></td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="min-w-full rounded-lg overflow-hidden border border-gray-200 section-hidden" id="individualTable">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th scope="col" class="table-header-cell text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Descripción</th>
+                  <th scope="col" class="table-header-cell text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Cantidad</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-100">
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="table-description-cell text-sm font-bold text-gray-800">Total de Envíos:</td>
+                  <td class="table-number-cell text-sm font-bold text-gray-800"><%= @total_submissions_user %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Completados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @approved_submissions_user %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Pendientes (Total):</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @pending_submissions_user %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Abiertos</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @opened_submissions_user %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Parcialmente Completado</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @partially_completed_submissions_user %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="text-sm text-gray-700 table-subcategory-description-cell">Enviado pero sin interacción</td>
+                  <td class="text-sm text-gray-700 table-subcategory-number-cell"><%= @sent_submissions_user %></td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Rechazados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @rejected_submissions_user %></td>
+                </tr>
+                <tr class="bg-gray-50 hover:bg-gray-100">
+                  <td class="table-description-cell text-sm font-semibold text-gray-900">Expirados:</td>
+                  <td class="table-number-cell text-sm text-gray-700"><%= @expired_submissions_user %></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-span-1">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden p-6 h-full flex flex-col">
+        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Resumen General de Estados</h3>
+        <div class="chart-container flex-grow">
+          <canvas id="submissionsStatusChart"></canvas>
+          <div id="no-status-data-message" class="hidden text-center text-red-500 mt-4">
+            No hay datos disponibles para el gráfico de estados con los filtros actuales.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="mb-8">
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h3 class="text-2xl font-semibold text-gray-800 mb-4">Envíos por Año</h3>
+      <div class="chart-monthly-container h-96">
+        <canvas id="submissionsMonthlyChart"></canvas>
+        <div id="no-monthly-data-message" class="hidden text-center text-red-500 mt-4">
+          No hay datos disponibles para el gráfico mensual con los filtros actuales.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+    <div class="bg-custom-header text-gray-800 px-6 py-4 text-xl font-semibold">Uso por Miembro</div>
+    <div class="p-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden border border-gray-200 table-striped">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enviados</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completados</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rechazados</th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expirados</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @member_usage.each do |member| %>
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><%= member.first_name %> <%= member.last_name %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><%= member.sent %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><%= member.completed %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><%= member.declined %></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><%= member.expired %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="status-data" style="display: none;"><%= @status_data.to_json.html_safe %></div>
+<div id="individual-data" style="display: none;"><%= @individual_usage.to_json.html_safe %></div>
+<div id="monthly-data" style="display: none;"><%= @monthly_data.to_json.html_safe %></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module">
+  let statusChartInstance = null;
+  let monthlyChartInstance = null;
+  let currentView = localStorage.getItem('currentView') || 'general'; // Restaurar estado desde localStorage
+
+
+  function destroyChart(chartInstance) {
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+  }
+
+
+  function toggleNoDataMessage(elementId, show) {
+    const messageElement = document.getElementById(elementId);
+    const canvasElement = messageElement ? messageElement.previousElementSibling : null;
+    if (messageElement && canvasElement) {
+      if (show) {
+        messageElement.classList.remove('hidden');
+        canvasElement.style.display = 'none';
+      } else {
+        messageElement.classList.add('hidden');
+        canvasElement.style.display = 'block';
+      }
+    }
+  }
+
+
+  function loadAndRenderCharts(dataType = 'status') {
+    destroyChart(statusChartInstance);
+    destroyChart(monthlyChartInstance);
+    toggleNoDataMessage('no-status-data-message', false);
+    toggleNoDataMessage('no-monthly-data-message', false);
+
+
+    try {
+      const statusDataElement = document.getElementById('status-data');
+      const individualDataElement = document.getElementById('individual-data');
+      const monthlyDataElement = document.getElementById('monthly-data');
+
+
+      let statusData = {};
+      let individualData = {};
+      let monthlyData = {};
+
+
+      if (statusDataElement && statusDataElement.textContent) {
+        statusData = JSON.parse(statusDataElement.textContent);
+      }
+      if (individualDataElement && individualDataElement.textContent) {
+        individualData = JSON.parse(individualDataElement.textContent);
+      }
+      if (monthlyDataElement && monthlyDataElement.textContent) {
+        monthlyData = JSON.parse(monthlyDataElement.textContent);
+      }
+
+
+      const submissionsStatusChartCtx = document.getElementById('submissionsStatusChart');
+      if (submissionsStatusChartCtx) {
+        const dataToUse = dataType === 'individual' ? individualData : statusData;
+        const hasData = Object.values(dataToUse).some(val => val > 0);
+        if (Object.keys(dataToUse).length > 0 && hasData) {
+          statusChartInstance = new Chart(submissionsStatusChartCtx, {
+            type: 'pie',
+            data: {
+              labels: Object.keys(dataToUse),
+              datasets: [{
+                data: Object.values(dataToUse),
+                backgroundColor: [
+                  'rgba(81, 227, 227, 0.7)', 'rgba(249, 199, 73, 0.7)', 'rgba(249, 56, 207, 0.7)',
+                  'rgba(142, 85, 255, 0.7)', 'rgba(246, 142, 37, 0.87)', 'rgba(235, 8, 8, 0.86)'
+                ],
+                borderColor: '#ffffff',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'right', labels: { font: { family: 'Inter', size: 14 } } },
+                title: { display: false },
+                tooltip: {
+                  callbacks: { label: (context) => `${context.label}: ${context.raw} (${((context.raw / Object.values(dataToUse).reduce((a, b) => a + b, 0)) * 100).toFixed(1)}%)` },
+                  bodyFont: { family: 'Inter' }, titleFont: { family: 'Inter' }
+                }
+              }
+            }
+          });
+        } else {
+          toggleNoDataMessage('no-status-data-message', true);
+        }
+      }
+
+
+      const submissionsMonthlyChartCtx = document.getElementById('submissionsMonthlyChart');
+      if (submissionsMonthlyChartCtx) {
+        const hasMonthlyData = Object.values(monthlyData).some(val => val > 0);
+        if (Object.keys(monthlyData).length > 0 && hasMonthlyData) {
+          monthlyChartInstance = new Chart(submissionsMonthlyChartCtx, {
+            type: 'bar',
+            data: {
+              labels: Object.keys(monthlyData),
+              datasets: [{
+                label: 'Número de Envíos',
+                data: Object.values(monthlyData),
+                backgroundColor: ['rgba(75, 192, 192, 0.7)', 'rgba(255, 159, 64, 0.7)', 'rgba(153, 102, 255, 0.7)'],
+                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 159, 64, 1)', 'rgba(153, 102, 255, 1)'],
+                borderWidth: 1, borderRadius: 4, barPercentage: 0.5, categoryPercentage: 0.7
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false }, title: { display: false }, tooltip: { bodyFont: { family: 'Inter' }, titleFont: { family: 'Inter' }, backgroundColor: 'rgba(0, 0, 0, 0.7)', titleColor: '#fff', bodyColor: '#fff', cornerRadius: 4, padding: 10 } },
+              scales: {
+                x: { grid: { display: false }, ticks: { font: { family: 'Inter' }, color: '#4a4a4a', maxRotation: 45, minRotation: 0 }, offset: true, beginAtZero: true },
+                y: { beginAtZero: true, grid: { color: 'rgba(200, 200, 200, 0.2)' }, ticks: { font: { family: 'Inter' }, color: '#4a4a4a', callback: (value) => Number.isInteger(value) ? value : null }, grace: '5%' }
+              }
+            }
+          });
+        } else {
+          toggleNoDataMessage('no-monthly-data-message', true);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error al cargar o renderizar las gráficas:", error);
+      toggleNoDataMessage('no-status-data-message', true);
+      toggleNoDataMessage('no-monthly-data-message', true);
+    }
+  }
+
+
+  document.getElementById('toggleViewBtn').addEventListener('click', () => {
+    const generalTable = document.getElementById('generalTable');
+    const individualTable = document.getElementById('individualTable');
+    if (currentView === 'general') {
+      generalTable.classList.add('section-hidden');
+      individualTable.classList.remove('section-hidden');
+      document.getElementById('toggleViewBtn').textContent = 'Mostrar Resultados Generales';
+      loadAndRenderCharts('individual');
+      currentView = 'individual';
+    } else {
+      generalTable.classList.remove('section-hidden');
+      individualTable.classList.add('section-hidden');
+      document.getElementById('toggleViewBtn').textContent = 'Mostrar Resultados Individuales';
+      loadAndRenderCharts('status');
+      currentView = 'general';
+    }
+    localStorage.setItem('currentView', currentView); // Guardar estado en localStorage
+  });
+
+
+  // Restaurar vista al cargar la página
+  document.addEventListener('DOMContentLoaded', () => {
+    const generalTable = document.getElementById('generalTable');
+    const individualTable = document.getElementById('individualTable');
+    const toggleBtn = document.getElementById('toggleViewBtn');
+    if (currentView === 'individual') {
+      generalTable.classList.add('section-hidden');
+      individualTable.classList.remove('section-hidden');
+      toggleBtn.textContent = 'Mostrar Resultados Generales';
+      loadAndRenderCharts('individual');
+    } else {
+      generalTable.classList.remove('section-hidden');
+      individualTable.classList.add('section-hidden');
+      toggleBtn.textContent = 'Mostrar Resultados Individuales';
+      loadAndRenderCharts('status');
+    }
+  });
+</script>
