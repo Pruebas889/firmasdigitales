@@ -23,6 +23,8 @@
       padding-top: 12px;
       padding-bottom: 12px;
     }
+
+
     /* Clase para los números de las categorías "padre" */
     .table-number-cell {
       text-align: right;
@@ -262,7 +264,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+<script type="module">
   let statusChartInstance = null;
   let monthlyChartInstance = null;
   let currentView = localStorage.getItem('currentView') || 'general'; // Restaurar estado desde localStorage

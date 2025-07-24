@@ -4,7 +4,6 @@ services:
       postgres:
         condition: service_healthy
     image: docuseal/docuseal:latest
-    entrypoint: ["/app/entrypoint.sh"]
     ports:
       - "3000:3000"
     volumes:
@@ -17,10 +16,6 @@ services:
       - ./app/services/:/app/app/services
       - ./app/views/:/app/app/views
       - ./lib/:/app/lib
-      - ./config/:/app/config
-      - ./Gemfile:/app/Gemfile
-      - ./Gemfile.lock:/app/Gemfile.lock
-      - ./entrypoint.sh:/app/entrypoint.sh:rw
     environment:
       - HOST=192.168.21.30
       - FORCE_SSL=false
