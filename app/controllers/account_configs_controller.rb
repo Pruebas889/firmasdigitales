@@ -3,7 +3,6 @@
 class AccountConfigsController < ApplicationController
   before_action :load_account_config, only: :create
   authorize_resource :account_config, only: :create
-
   load_and_authorize_resource :account_config, only: :destroy
 
   ALLOWED_KEYS = [
