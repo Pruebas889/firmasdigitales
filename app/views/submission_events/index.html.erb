@@ -10,15 +10,6 @@
         <p class="text-sm leading-none text-base-content/60 pt-1.5">
           <%= l(@submission.created_at.in_time_zone(current_account.timezone), format: :long, locale: current_account.locale) %>
         </p>
-        <p class="text-base-content/80 mt-1">
-          <% if @submission.source == 'invite' %>
-            <%= t('submission_created_by_email_html', email: @submission.created_by_user.email) %>
-          <% elsif @submission.created_by_user %>
-            <%= t('submission_created_by_email_via_source_html', email: @submission.created_by_user.email, source: t("submission_sources.#{@submission.source}")) %>
-          <% else %>
-            <%= t('submission_created_via_source_html', source: t("submission_sources.#{@submission.source}")) %>
-          <% end %>
-        </p>
       </li>
       <% @submission.submission_events.order(:event_timestamp).each do |event| %>
         <% submitter = @submission.submitters.find { |e| e.id == event.submitter_id } %>
@@ -34,14 +25,23 @@
           <p class="text-base-content/80 mt-1">
             <% if event.event_type == 'complete_verification' %>
               <%= t('submission_event_names.complete_verification_by_html', provider: event.data['method'], submitter_name:) %>
+              <%= t("submission_event_names.send_email_html", creator_name: event.creator.full_name_with_email, submitter_name:) %>
+            <% elsif event.event_type.include?('send_') && event.creator.present? %>
+              <%= event.translated_event_message.html_safe %>
+              <%= t('submission_event_names.complete_verification_by_html', provider: event.data['method'], submitter_name:) %>
+              <%= t("submission_event_names.send_email_html", creator_name: event.creator.full_name_with_email, submitter_name:) %>
             <% elsif event.event_type == 'invite_party' && (invited_submitter = @submission.submitters.find { |e| e.uuid == event.data['uuid'] }) && (name = @submission.template_submitters.find { |e| e['uuid'] == event.data['uuid'] }&.dig('name')) %>
               <%= t('submission_event_names.invite_party_by_html', invited_submitter_name: [invited_submitter.name || invited_submitter.email || invited_submitter.phone, name].join(' '), submitter_name:) %>
             <% elsif event.event_type.include?('send_') %>
-              <%= t("submission_event_names.#{event.event_type}_to_html", submitter_name:) %>
+              <%= t('submission_event_names.complete_verification_by_html', provider: event.data['method'], submitter_name:) %>
+              <%= t("submission_event_names.#{event.event_type}_to_html", submitter_name:, creator_name: event.creator.full_name_with_email) %>
+              <%= t("submission_event_names.send_email_html", creator_name: event.creator.full_name_with_email, submitter_name:) %>
             <% elsif event.event_type.start_with?('bounce_') ||  event.event_type.start_with?('complaint_') %>
               <%= t("submission_event_names.#{event.event_type}_html", submitter_name:) %>
+              <%= t("submission_event_names.send_email_html", creator_name: event.creator.full_name_with_email, submitter_name:) %>
             <% else %>
               <%= t("submission_event_names.#{event.event_type}_by_html", submitter_name:) %>
+              <%= t("submission_event_names.send_email_html", creator_name: event.creator.full_name_with_email, submitter_name:) %>
             <% end %>
           </p>
         </li>

@@ -44,6 +44,7 @@ gem 'strip_attributes'
 gem 'turbo-rails'
 gem 'twitter_cldr', require: false
 gem 'tzinfo-data'
+gem 'groupdate'
 
 group :development, :test do
   gem 'better_html'

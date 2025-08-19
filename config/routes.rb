@@ -28,6 +28,12 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :reports, only: [:index] do
+    collection do
+      get 'data'
+    end
+  end
+
   namespace :api, defaults: { format: :json } do
     resource :user, only: %i[show]
     resources :attachments, only: %i[create]

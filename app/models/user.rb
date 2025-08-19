@@ -74,7 +74,7 @@ class User < ApplicationRecord
   scope :active, -> { where(archived_at: nil) }
   scope :archived, -> { where.not(archived_at: nil) }
   scope :admins, -> { where(role: ADMIN_ROLE) }
-  
+
   # Nuevos scopes para editor y viewer
   scope :editors, -> { where(role: EDITOR_ROLE) }
   scope :viewers, -> { where(role: VIEWER_ROLE) }
@@ -116,6 +116,10 @@ class User < ApplicationRecord
     [first_name, last_name].compact_blank.join(' ')
   end
 
+  def full_name_with_email
+    "#{first_name} #{last_name} (#{email})"
+  end
+
   def friendly_name
     if full_name.present?
       %("#{full_name.delete('"')}" <#{email}>)
@@ -123,7 +127,7 @@ class User < ApplicationRecord
       email
     end
   end
-  
+
 # --- Métodos de ayuda para verificar roles ---
   def admin?
     role == ADMIN_ROLE

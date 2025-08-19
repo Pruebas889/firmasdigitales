@@ -57,6 +57,16 @@ class SubmissionEvent < ApplicationRecord
     api_complete_form: 'api_complete_form'
   }, scope: false
 
+  def creator
+    submission&.user || submission.created_by_user
+  end
+
+  def translated_event_message
+    return unless creator
+
+    I18n.t("submission_event.created_by", name_1: creator.first_name, name_2: creator.last_name, email: creator.email)
+  end
+
   private
 
   def set_submission_id

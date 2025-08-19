@@ -756,6 +756,7 @@ en: &en
     invite: Invite
     link: Link
   submission_event_names:
+    
     send_email_to_html: '<b>Email sent</b> to %{submitter_name}'
     bounce_email_html: '<b>Email bounced</b> %{submitter_name}'
     complaint_email_html: '<b>Spam complaint</b> %{submitter_name}'
@@ -1587,8 +1588,12 @@ es: &es
     embed: Integración
     invite: Invitación
     link: Enlace
+  submission_event:
+    created_by: "<b>Creado por</b> %{creator_name}"
+
   submission_event_names:
-    send_email_to_html: '<b>Correo electrónico enviado</b> a %{submitter_name}'
+    send_email_by_html: "<b>Correo enviado por</b> %{creator_name} a %{submitter_name}"
+    send_email_to_html: "<b>Correo electrónico enviado</b> a %{submitter_name}"
     bounce_email_html: '<b>Correo electrónico rebotado</b> %{submitter_name}'
     complaint_email_html: '<b>Queja de spam</b> %{submitter_name}'
     send_reminder_email_to_html: '<b>Correo de recordatorio enviado</b> a %{submitter_name}'
@@ -2428,7 +2433,7 @@ it: &it
     click_email_by_html: "<b>Link dell'e-mail cliccato</b> da %{submitter_name}"
     click_sms_by_html: "<b>Link dell'SMS cliccato</b> da %{submitter_name}"
     phone_verified_by_html: '<b>Telefono verificato</b> da %{submitter_name}'
-    start_form_by_html: '<b>Invio iniziato</b> da %{submitter_name}'
+    start_form_by_html: '<b>Invio iniziato</b> da %{sender_name}'
     view_form_by_html: '<b>Modulo visualizzato</b> da %{submitter_name}'
     invite_party_by_html: '<b>Invitato</b> %{invited_submitter_name} da %{submitter_name}'
     complete_form_by_html: '<b>Invio completato</b> da %{submitter_name}'
@@ -3261,7 +3266,7 @@ fr: &fr
     click_email_by_html: "<b>Lien de l'e-mail cliqué</b> par %{submitter_name}"
     click_sms_by_html: '<b>Lien du SMS cliqué</b> par %{submitter_name}'
     phone_verified_by_html: '<b>Téléphone vérifié</b> par %{submitter_name}'
-    start_form_by_html: '<b>Soumission commencée</b> par %{submitter_name}'
+    start_form_by_html: '<b>Soumission commencée</b> par %{sender_name}'
     view_form_by_html: '<b>Formulaire consulté</b> par %{submitter_name}'
     invite_party_by_html: '<b>Invité</b> %{invited_submitter_name} par %{submitter_name}'
     complete_form_by_html: '<b>Soumission terminée</b> par %{submitter_name}'
@@ -4093,7 +4098,7 @@ pt: &pt
     click_email_by_html: '<b>Link do e-mail clicado</b> por %{submitter_name}'
     click_sms_by_html: '<b>Link do SMS clicado</b> por %{submitter_name}'
     phone_verified_by_html: '<b>Telefone verificado</b> por %{submitter_name}'
-    start_form_by_html: '<b>Submissão iniciada</b> por %{submitter_name}'
+    start_form_by_html: '<b>Submissão iniciada</b> por %{sender_name}'
     view_form_by_html: '<b>Formulário visualizado</b> por %{submitter_name}'
     invite_party_by_html: '<b>Convidado</b> %{invited_submitter_name} por %{submitter_name}'
     complete_form_by_html: '<b>Submissão concluída</b> por %{submitter_name}'

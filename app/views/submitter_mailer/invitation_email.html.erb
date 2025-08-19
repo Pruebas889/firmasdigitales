@@ -1,15 +1,47 @@
-<% if @email_config || @body.present? %>
-  <% body = (@body.presence || @email_config.value['body']).to_s %>
-  <%= render 'custom_content', content: body, submitter: @submitter %>
-  <% if !body.match?(ReplaceEmailVariables::SUBMITTER_LINK) && !body.match?(ReplaceEmailVariables::SUBMITTER_ID) && !body.match?(ReplaceEmailVariables::SUBMISSION_LINK) && !body.match?(ReplaceEmailVariables::TEMPLATE_ID) && !@submitter.submission.source.in?(%w[api embed]) %>
-    <p><%= link_to nil, submit_form_url(slug: @submitter.slug, t: SubmissionEvents.build_tracking_param(@submitter, 'click_email')) %></p>
-  <% end %>
-<% else %>
-  <p><%= t('hi_there') %>,</p>
-  <p><%= I18n.t(@submitter.with_signature_fields? ? :you_have_been_invited_to_sign_the_name : :you_have_been_invited_to_submit_the_name_form, name: @submitter.submission.name || @submitter.submission.template.name) %></p>
-  <p><%= link_to I18n.t(@submitter.with_signature_fields? ? :review_and_sign : :review_and_submit), submit_form_url(slug: @submitter.slug, t: SubmissionEvents.build_tracking_param(@submitter, 'click_email'), host: ENV.fetch('EMAIL_HOST', Docuseal.default_url_options[:host])) %></p>
-  <p><%= t('please_contact_us_by_replying_to_this_email_if_you_didn_t_request_this') %></p>
-  <p>
-  <%= t('thanks') %>,<br><%= @current_account.name %>
+<div style="max-width:500px;margin:0 auto;background:#fff;border-radius:10px;box-shadow:0 2px 8px #e0e0e0;padding:32px 24px;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="text-align:center;margin-bottom:18px;">
+    <img src="https://res.cloudinary.com/dz7okl1ko/image/upload/v1752180853/5134606975890468276-removebg-preview_iskqsd.png"
+         alt="Copservir"
+         style="max-width:140px;height:auto;display:inline-block;">
+  </div>
+  <h2 style="color:#28a745;font-size:22px;margin-bottom:16px;text-align:center;">
+    ¡Su firma es solicitada!
+  </h2>
+  <p style="font-size:16px;color:#333;margin-bottom:24px;text-align:center;">
+    Por favor revisar y firmar el documento.
   </p>
-<% end %>
+  <div style="text-align:center;margin-bottom:32px;">
+    <a href="<%= submit_form_url(
+          slug: @submitter.slug,
+          t: SubmissionEvents.build_tracking_param(@submitter, 'click_email'),
+          host: ENV.fetch('EMAIL_HOST', Docuseal.default_url_options[:host])
+        ) %>"
+       style="display:inline-block;padding:14px 32px;background-color:#28a745;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:17px;box-shadow:0 2px 6px #b7e4c7;transition:background 0.2s;">
+      Revisar y Firmar
+    </a>
+  </div>
+  <div style="background:#f8f9fa; padding:16px 12px; border-radius:6px; margin-bottom:24px;">
+    <p style="margin-top:0; margin-bottom:12px; color:#333; font-size:16px;">Agradecemos su colaboración y pronta respuesta.</p>
+
+    <p style="color:#333; font-size:18px; display:block; margin-bottom:8px;"><b>Recomendaciones:</p>
+    <p style="font-size:15px; color:#555; margin-top:0; margin-bottom:12px;">
+      En caso de tener algún inconveniente técnico durante el proceso, favor diligenciar:
+    </p>
+
+    <p style="margin-bottom:12px;">
+      <a href="https://tinyurl.com/2ctleunp" style="color:#007bff; text-decoration:underline; font-size:15px;">
+        ✉️ Formulario de soporte mesa de ayuda Asana
+      </a>
+    </p>
+
+    <p style="font-size:15px; color:#555; margin-top:0;">
+      (Soporte Técnico) 📞 <span style="color:#28a745; font-weight:bold;">3203509822</span>
+    </p>
+  </div>
+
+  <p style="font-size:15px; text-align:left; margin-top:24px; margin-bottom:0; color:#333;">
+    Atentamente,
+    <br>
+    <span style="font-size:16px; color:#28a745; font-weight:bold;"><%= @current_account.name %></span>
+  </p>
+</div>

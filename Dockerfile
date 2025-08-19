@@ -28,6 +28,8 @@ WORKDIR /app
 RUN apk add --no-cache \
     build-base \
     git \
+    libxml2-dev \
+    libxslt-dev \
     mariadb-dev \
     nodejs \
     postgresql-dev \
@@ -52,15 +54,22 @@ COPY ./tailwind.application.config.js ./tailwind.application.config.js
 # Archivos fuente
 COPY ./app/javascript ./app/javascript
 COPY ./app/views ./app/views
+# ^ Es inusual copiar vistas para compilar recursos a menos que contengan JS/CSS que requiera procesamiento.
+# Si tus vistas son solo ERB, puedes eliminar esto. Si tienen llamadas directas a Stimulus/WebPacker, consérvalas.
 
 # Gems necesarias para shakapacker
 COPY ./Gemfile ./Gemfile.lock ./
 RUN bundle install
 
-COPY LICENSE README.md Rakefile config.ru .version ./
+# COPY LICENSE README.md Rakefile config.ru .version ./
+
+RUN echo "🌐 Actualizando caniuse-lite..." && \
+    npx update-browserslist-db@latest || true && \
+    yarn add -W caniuse-lite@latest && \
+    yarn remove -W caniuse-lite # yarn remove -W caniuse-lite is often recommended to clean up after update
 
 # Precompilar assets
-RUN echo "gem 'shakapacker'" > Gemfile && ./bin/shakapacker 
+RUN echo "⚙️ Compilando assets..." && bin/shakapacker
 
 # Etapa 3: Imagen final de la aplicación
 FROM ruby:3.4.2-alpine AS app
@@ -80,8 +89,11 @@ RUN echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/ap
         git \
         libheif@edge \
         libpq-dev \
+        libxml2-dev \
+        libxslt-dev \
         mariadb-dev \
         nodejs \
+        npm \
         postgresql-dev \
         redis \
         sqlite-dev \
@@ -92,20 +104,21 @@ RUN echo '@edge https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/ap
     mkdir /fonts && \
     rm /usr/share/fonts/freefont/FreeSans.otf && \
     echo $'.include = /etc/ssl/openssl.cnf\n\
-\n\
-[provider_sect]\n\
-default = default_sect\n\
-legacy = legacy_sect\n\
-\n\
-[default_sect]\n\
-activate = 1\n\
-\n\
-[legacy_sect]\n\
-activate = 1' >> /app/openssl_legacy.cnf
+    \n\
+    [provider_sect]\n\
+    default = default_sect\n\
+    legacy = legacy_sect\n\
+    \n\
+    [default_sect]\n\
+    activate = 1\n\
+    \n\
+    [legacy_sect]\n\
+    activate = 1' >> /app/openssl_legacy.cnf
 
 # Dependencias Ruby
 COPY ./Gemfile ./Gemfile
 COPY ./Gemfile.lock ./Gemfile.lock
+# 
 RUN bundle install && rm -rf ~/.bundle /usr/local/bundle/cache
 
 # Binarios
@@ -133,7 +146,7 @@ COPY --from=download /pdfium-linux/licenses/pdfium.txt /usr/lib/libpdfium-LICENS
 COPY --from=webpack /app/public/packs ./public/packs
 COPY --from=webpack /app/node_modules ./node_modules
 
-RUN RAILS_ENV=production bundle exec rake assets:precompile
+# RUN RAILS_ENV=production bundle exec rake assets:precompile
 
 # Entrypoint y preparación
 COPY ./entrypoint.sh /app/entrypoint.sh

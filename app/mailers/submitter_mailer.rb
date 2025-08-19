@@ -6,43 +6,29 @@ class SubmitterMailer < ApplicationMailer
 
   NO_REPLY_REGEXP = /no-?reply@/i
 
+  layout 'mailer', except: [:invitation_email] # El layout se aplica a todos menos a invitation_email
+
+  # Cambios realizados:
+  # Se eliminó la lógica que priorizaba el uso de mensajes personalizados (cuerpo y asunto definidos por el administrador o configuración)
+  # Ahora, este método siempre utiliza la plantilla HTML por defecto (app/views/submitter_mailer/invitation_email.html.erb)
+  # para enviar las invitaciones a firmar documentos, garantizando que el correo tenga formato HTML y muestre el botón verde.
   def invitation_email(submitter)
     @current_account = submitter.submission.account
     @submitter = submitter
 
-    if submitter.preferences['email_message_uuid']
-      @email_message = submitter.account.email_messages.find_by(uuid: submitter.preferences['email_message_uuid'])
-    end
-
-    template_submitters_index =
-      if @email_message.blank?
-        build_submitter_preferences_index(@submitter)
-      else
-        {}
-      end
-
-    @body = @email_message&.body.presence ||
-            template_submitters_index.dig(@submitter.uuid, 'request_email_body').presence ||
-            @submitter.template&.preferences&.dig('request_email_body').presence
-
-    @subject = @email_message&.subject.presence ||
-               template_submitters_index.dig(@submitter.uuid, 'request_email_subject').presence ||
-               @submitter.template&.preferences&.dig('request_email_subject').presence
-
-    @email_config = AccountConfigs.find_for_account(@current_account, AccountConfig::SUBMITTER_INVITATION_EMAIL_KEY)
-
     assign_message_metadata('submitter_invitation', @submitter)
-
     reply_to = build_submitter_reply_to(@submitter)
 
     I18n.with_locale(@current_account.locale) do
-      subject = build_invite_subject(@subject, @email_config, submitter)
+      subject = "Has sido invitado(a) a firmar el documento \"#{@submitter.submission.name || @submitter.submission.template.name}\"."
 
       mail(
         to: @submitter.friendly_name,
         from: from_address_for_submitter(submitter),
-        subject:,
-        reply_to:
+        subject: subject, # <-- Solo este asunto se usará
+        reply_to: reply_to,
+        template_name: 'invitation_email', # Usa solo la plantilla, sin layout
+        layout: false # <-- Esto fuerza que NO use el layout mailer.html.erb
       )
     end
   end

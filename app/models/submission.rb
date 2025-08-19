@@ -37,7 +37,8 @@ class Submission < ApplicationRecord
   belongs_to :template, optional: true
   belongs_to :account
   belongs_to :created_by_user, class_name: 'User', optional: true
-
+  belongs_to :user, optional: true
+  
   has_one :search_entry, as: :record, inverse_of: :record, dependent: :destroy
 
   has_many :submitters, dependent: :destroy
@@ -68,11 +69,17 @@ class Submission < ApplicationRecord
            through: :template, source: :documents_attachments
 
   scope :active, -> { where(archived_at: nil) }
+
   scope :archived, -> { where.not(archived_at: nil) }
+
   scope :pending, lambda {
-    where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
-     .and(Submitter.arel_table[:completed_at].eq(nil))).select(1).arel.exists)
+    where(Submitter.where(
+      Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
+      .and(Submitter.arel_table[:completed_at].eq(nil))
+      .and(Submitter.arel_table[:declined_at].eq(nil)) # ⛔️ Excluir los rechazados
+    ).select(1).arel.exists)
   }
+
   scope :completed, lambda {
     where.not(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
      .and(Submitter.arel_table[:completed_at].eq(nil))).select(1).arel.exists)
@@ -81,11 +88,59 @@ class Submission < ApplicationRecord
     where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
      .and(Submitter.arel_table[:declined_at].not_eq(nil))).select(1).arel.exists)
   }
+
   scope :where_user_is_submitter, ->(user) {
     joins(:submitters).where(submitters: { email: user.email }).distinct
   }
   scope :expired, -> { pending.where(expire_at: ..Time.current) }
 
+  # Un submission se considera 'sent' (Enviado) si al menos un submitter lo ha enviado
+  # y no ha sido rechazado
+  scope :sent_status, -> {
+    joins(:submitters).where.not(submitters: { sent_at: nil })
+      .where(id: pending.select(:id)) # Que siga pendiente (no completado/rechazado)
+      .where.not(id: partially_completed_status.select(:id)) # No parcialmente completado
+      .where.not(id: opened_status.select(:id))
+      .where.not(id: expired.select(:id)) # No abierto (si queremos sent_status y opened_status sean excluyentes)
+      .distinct
+  }
+
+  # Un submission se considera 'opened' (Abierto) si al menos un submitter lo ha abierto
+  scope :opened_status, -> {
+    joins(:submitters).where.not(submitters: { opened_at: nil })
+      .where(id: pending.select(:id)) # Y que siga pendiente
+      .where.not(id: partially_completed_status.select(:id)) # No parcialmente completado
+      .distinct
+  }
+
+  # Un submission es 'partially_completed' (Parcialmente Completado) si
+  # AL MENOS UN submitter ha completado y AL MENOS UN submitter NO ha completado.
+  scope :partially_completed_status, lambda {
+    # Tiene submitters completados
+    where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
+      .and(Submitter.arel_table[:completed_at].not_eq(nil))).select(1).arel.exists)
+    # Y tiene submitters NO completados
+    .where(Submitter.where(Submitter.arel_table[:submission_id].eq(Submission.arel_table[:id])
+      .and(Submitter.arel_table[:completed_at].eq(nil))).select(1).arel.exists)
+  }
+
+  scope :sent_but_not_interacted, lambda {
+    joins(:submitters)
+      .where.not(submitters: { sent_at: nil }) # Al menos uno enviado
+      .where.not(id: partially_completed_status.select(:id)) # No parcialmente completado
+      .where.not(id: opened_status.select(:id))
+      .where.not(id: expired.select(:id))
+      .where.not(id: Submission.joins(:submitters)
+        .where.not(submitters: { opened_at: nil })
+        .or(Submission.joins(:submitters).where.not(submitters: { completed_at: nil }))
+        .or(Submission.joins(:submitters).where.not(submitters: { declined_at: nil }))
+        .select(:id)
+      ).distinct
+  }
+
+  scope :pending_not_expired, -> { pending.where(expire_at: [nil, Time.current..]) }
+
+  # Enum para el source y submitters_order
   enum :source, {
     invite: 'invite',
     bulk: 'bulk',

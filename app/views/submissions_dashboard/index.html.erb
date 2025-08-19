@@ -53,6 +53,12 @@
           <span class="font-normal"><%= t('completed') %></span>
         </div>
       </a>
+      <a href="<%= reports_path %>" data-turbo="false" class="flex h-10 px-2 py-1 text-lg items-center justify-between border border-neutral-300 text-center text-neutral font-semibold rounded-xl w-full md:w-48 hover:border-neutral-600">
+        <div class="filter-controls flex items-center space-x-1">
+          <%= svg_icon('list', class: 'w-5 h-5') %>
+          <span class="font-normal">Estadísticas</span>
+        </div>
+      </a>
     </div>
     <div class="flex items-end flex-col md:flex-row gap-2 w-full md:w-fit">
       <%= render 'submissions_filters/applied_filters', filter_params: %>

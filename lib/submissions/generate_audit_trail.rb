@@ -407,12 +407,11 @@ module Submissions
                 (name = submission.template_submitters.find { |e| e['uuid'] == event.data['uuid'] }&.dig('name'))
             invited_submitter_name = [invited_submitter.name || invited_submitter.email || invited_submitter.phone,
                                       name].join(' ')
-            I18n.t('submission_event_names.invite_party_by_html', invited_submitter_name:,
-                                                                  submitter_name:)
+            I18n.t('submission_event_names.invite_party_by_html', invited_submitter_name:, submitter_name:)
           elsif event.event_type.include?('send_')
             I18n.t("submission_event_names.#{event.event_type}_to_html", submitter_name:)
           else
-            I18n.t("submission_event_names.#{event.event_type}_by_html", submitter_name:)
+            I18n.t("submission_event_names.#{event.event_type}_by_html", submitter_name:, creator_name: event.creator.full_name_with_email)
           end
 
         bold_text, normal_text = text.match(%r{<b>(.*?)</b>(.*)}).captures
