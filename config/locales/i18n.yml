@@ -1432,6 +1432,14 @@ es: &es
   upgrade_to_start_using_in_production_html: '<a href="%{url}" target="_blank" class="link font-semibold">Actualiza</a> para empezar a usar en Producción.'
   download_combined_pdf: Descargar PDF combinado
   audit_log: Registro de Auditoría
+  certificate_details: "Detalles del certificado"
+  certificate_subject: "Organizacion"
+  certificate_issuer: "Certificador"
+  certificate_valid_from: "Válido desde"
+  certificate_valid_to: "Válido hasta"
+  certificate_key_usage: "Uso previsto de la clave"
+  certificate_extended_key_usage: "Uso extendido de la clave"
+  no_certificate_available: "No hay certificado disponible"
   signers: Firmantes
   not_invited_yet: Aún no invitado
   not_completed_yet: Aún no completado

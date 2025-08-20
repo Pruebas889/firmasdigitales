@@ -7,27 +7,27 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./docuseal/:/data/docuseal
-      - ./app/controllers/:/app/app/controllers
-      - ./public/:/app/public
-      - ./app/javascript/:/app/app/javascript
-      - ./app/jobs/:/app/app/jobs
-      - ./app/mailers/:/app/app/mailers
-      - ./app/models/:/app/app/models
-      - ./app/services/:/app/app/services
-      - ./app/views/:/app/app/views
-      - ./entrypoint.sh:/app/entrypoint.sh:rw
-      - ./lib/:/app/lib
-      - ./config/:/app/config
+      - ./docuseal:/data/docuseal
+      - ./app/controllers:/app/app/controllers
+      - ./app/javascript:/app/app/javascript
+      - ./app/jobs:/app/app/jobs
+      - ./app/mailers:/app/app/mailers
+      - ./app/models:/app/app/models
+      - ./app/services:/app/app/services
+      - ./app/views:/app/app/views
+      - ./entrypoint.sh:/app/entrypoint.sh
+      - ./lib:/app/lib
+      - ./config:/app/config
       - ./Gemfile:/app/Gemfile
       - ./Gemfile.lock:/app/Gemfile.lock
       - ./tailwind.config.js:/app/tailwind.config.js
       - ./tailwind.application.config.js:/app/tailwind.application.config.js
       - ./tailwind.form.config.js:/app/tailwind.form.config.js
+    entrypoint: ["/app/entrypoint.sh"]
     environment:
       - RAILS_ENV=production
       - NODE_ENV=production
-      - HOST=192.168.21.30
+      - HOST=0.0.0.0
       - FORCE_SSL=false
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuseal
     networks:
@@ -51,7 +51,7 @@ services:
 
   caddy:
     image: caddy:latest
-    command: caddy reverse-proxy --from 192.168.21.37 --to app:3000
+    command: caddy reverse-proxy --from localhost --to app:3000
     ports:
       - "80:80"
       - "443:443"
@@ -59,7 +59,7 @@ services:
     volumes:
       - ./caddy_data:/data
     environment:
-      - HOST=192.168.21.37
+      - HOST=localhost
     depends_on:
       - app
     networks:

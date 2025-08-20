@@ -229,6 +229,91 @@ module Submissions
         composer.draw_box(divider)
       end
 
+      # Add certificate details section with internal certificate data
+      pkcs = Accounts.load_signing_pkcs(account)
+      cert_rows = []
+
+      if pkcs
+        cert = pkcs.certificate
+        timezone = account.timezone
+
+        subject = cert.subject.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace)
+        organization = subject.match(/O=([^\/]+)/)&.[](1) || 'N/A'
+        issuer = cert.issuer.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace)
+        certificador = issuer.match(/O=([^\/]+)/)&.[](1) || 'N/A'
+        valid_from = I18n.l(cert.not_before.in_time_zone(timezone), format: :long, locale: account.locale)
+        valid_to = I18n.l(cert.not_after.in_time_zone(timezone), format: :long, locale: account.locale)
+        key_usage = cert.extensions.find { |e| e.oid == 'keyUsage' }&.value&.presence || 'N/A'
+        extended_key_usage = cert.extensions.find { |e| e.oid == 'extendedKeyUsage' }&.value&.presence || 'N/A'
+
+        cert_rows = [
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_subject')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: organization }
+              ], line_spacing: 1.3
+            )
+          ],
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_issuer')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: certificador }
+              ], line_spacing: 1.3
+            )
+          ],
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_valid_from')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: valid_from }
+              ], line_spacing: 1.3
+            )
+          ],
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_valid_to')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: valid_to }
+              ], line_spacing: 1.3
+            )
+          ],
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_key_usage')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: key_usage }
+              ], line_spacing: 1.3
+            )
+          ],
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_extended_key_usage')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: extended_key_usage }
+              ], line_spacing: 1.3
+            )
+          ]
+        ]
+      else
+        # If no certificate, show a fallback message
+        cert_rows = [
+          [
+            composer.document.layout.formatted_text_box(
+              [
+                { text: "#{I18n.t('certificate_details')}: ", font: [FONT_NAME, { variant: :bold }] },
+                { text: I18n.t('no_certificate_available') }
+              ], line_spacing: 1.3
+            )
+          ]
+        ]
+      end
+
+      composer.text(I18n.t('certificate_details'), font_size: 12, padding: [10, 0, 10, 0])
+      composer.table(cert_rows, cell_style: { padding: [0, 0, 10, 0], border: { width: 0 } })
+      composer.draw_box(divider)
+
       submission.template_submitters.filter_map do |item|
         submitter = submission.submitters.find { |e| e.uuid == item['uuid'] }
 
