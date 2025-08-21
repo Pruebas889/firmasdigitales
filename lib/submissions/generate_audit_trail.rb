@@ -236,11 +236,13 @@ module Submissions
       if pkcs
         cert = pkcs.certificate
         timezone = account.timezone
-
-        subject = cert.subject.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace)
-        organization = subject.match(/O=([^\/]+)/)&.[](1) || 'N/A'
-        issuer = cert.issuer.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace)
-        certificador = issuer.match(/O=([^\/]+)/)&.[](1) || 'N/A'
+        
+        organization = (cert.subject.to_a.assoc("O")&.at(1) || "N/A")
+        certificador = (cert.issuer.to_a.assoc("O")&.at(1) || "N/A")
+        # Asegura UTF-8 válido
+        organization = organization.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
+        certificador = certificador.to_s.encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
+        
         valid_from = I18n.l(cert.not_before.in_time_zone(timezone), format: :long, locale: account.locale)
         valid_to = I18n.l(cert.not_after.in_time_zone(timezone), format: :long, locale: account.locale)
         key_usage = cert.extensions.find { |e| e.oid == 'keyUsage' }&.value&.presence || 'N/A'
@@ -309,8 +311,8 @@ module Submissions
           ]
         ]
       end
-
-      composer.text(I18n.t('certificate_details'), font_size: 12, padding: [10, 0, 10, 0])
+      
+      composer.text(I18n.t('certificate_details'), font: [FONT_NAME, { variant: :bold }], font_size: 12, padding: [10, 0, 10, 0])
       composer.table(cert_rows, cell_style: { padding: [0, 0, 10, 0], border: { width: 0 } })
       composer.draw_box(divider)
 
